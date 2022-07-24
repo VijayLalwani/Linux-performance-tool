@@ -1,12 +1,12 @@
 import sys, os, subprocess
 
 def install_packages():
-    print("\n \n Installing required packeges...\n \n ")
-    subprocess.run(["sudo", "pacman", "-Sy", "--noconfirm" , "cpupower"], check=True)
+    print("\nInstalling required packeges...")
+    subprocess.run(["sudo", "pacman", "-Sy", "--noconfirm" , "cpupower"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 if __name__ == '__main__':
     if os.geteuid() == 0:
         install_packages()
     else:
-        print("\n \n Need root privilage to run the script\n \n ")
+        print("\nChecking root privilage to run the script")
         subprocess.check_call(['sudo', sys.executable] + sys.argv)
