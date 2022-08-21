@@ -1,0 +1,10 @@
+[Unit]
+unit1
+
+[Service]
+ManagedOOMMemoryPressureLimit=50%
+ManagedOOMMemoryPressure=kill
+service 1
+
+[Slice]
+ManagedOOMSwap=kill
