@@ -64,7 +64,6 @@ _main() {
       _end
       ;;
     "restart")
-      # TODO: stub for restart support
       echo "not supported yet"
       _usage
       exit 1
