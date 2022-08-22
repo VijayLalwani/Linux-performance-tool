@@ -8,7 +8,7 @@ if [ $# -ne 1 ]; then
     echo "Usage: $0 [$available_governors]"
 fi
 
-function current_cpu_governor ()
+current_cpu_governor ()
 {
     echo -n "CPU scaling governor is currently set to: "
     cpu_scaling_governor="NOT SET"
@@ -21,8 +21,7 @@ function current_cpu_governor ()
 
 current_cpu_governor;
 
-new_governor=""; if [ $# -eq 0 ]
-then
+new_governor=""; if [ $# -eq 0 ]; then
     exit 0
 else
     new_governor="$1"

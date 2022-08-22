@@ -13,11 +13,11 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 [ "$#" -gt "0" ] && [ "$1" = "-x" ] && shift && set -x
 
 # set sane defaults, see /etc/default/zram-swap for explanations
-_zram_fraction="1/2"
-_zram_algorithm="lz4"
-_comp_factor=''
-_zram_fixedsize=''
-_zram_swap_debug=''
+zram_fraction="1/2"
+zram_algorithm="lz4"
+comp_factor=''
+zram_fixedsize=''
+zram_swap_debug=''
 
 # load user config
 [ -f /etc/default/zram-swap ] &&
@@ -25,21 +25,19 @@ _zram_swap_debug=''
 
 # support a debugging flag in the config file so people don't have to edit the systemd service
 # to enable debugging
-[ -n "$_zram_swap_debug" ] && set -x
+[ -n "$zram_swap_debug" ] && set -x
 
 # set expected compression ratio based on algorithm -- we'll use this to
 # calculate how much uncompressed swap data we expect to fit into our
-# target ram allocation.  skip if already set in user config
-if [ -z "$_comp_factor" ]; then
-  case $_zram_algorithm in
-    lzo* | zstd) _comp_factor="3" ;;
-    lz4) _comp_factor="2.5" ;;
-    *) _comp_factor="2" ;;
+# target ram allocation.  skip if _
+    lzo* | zstd) comp_factor="3" ;;
+    lz4) comp_factor="2.5" ;;
+    *) comp_factor="2" ;;
   esac
 fi
 
 # main script:
-_main() {
+main() {
   if ! modprobe zram; then
     err "main: Failed to load zram module, exiting"
     return 1
@@ -54,57 +52,57 @@ _main() {
         err "main: zram swap already in use, exiting"
         return 1
       fi
-      _init
+      init
       ;;
     "end" | "stop")
       if ! grep -q zram /proc/swaps; then
         err "main: no zram swaps to cleanup, exiting"
         return 1
       fi
-      _end
+      end
       ;;
     "restart")
       echo "not supported yet"
-      _usage
+      usage
       exit 1
       ;;
     *)
-      _usage
+      usage
       exit 1
       ;;
   esac
 }
 
 # initialize swap
-_init() {
-  if [ -n "$_zram_fixedsize" ]; then
-    if ! _regex_match "$_zram_fixedsize" '^[[:digit:]]+(\.[[:digit:]]+)?(G|M)$'; then
-      err "init: Invalid size '$_zram_fixedsize'. Format sizes like: 100M 250M 1.5G 2G etc."
+init() {
+  if [ -n "$zram_fixedsize" ]; then
+    if ! regex_match "$_zram_fixedsize" '^[[:digit:]]+(\.[[:digit:]]+)?(G|M)$'; then
+      err "init: Invalid size '$zram_fixedsize'. Format sizes like: 100M 250M 1.5G 2G etc."
       exit 1
     fi
     # Use user supplied zram size
-    mem="$_zram_fixedsize"
+    mem="$zram_fixedsize"
   else
     # Calculate memory to use for zram
     totalmem=$(awk '/MemTotal/{print $2}' /proc/meminfo)
-    mem=$(calc "$totalmem * $_comp_factor * $_zram_fraction * 1024")
+    mem=$(calc "$totalmem * $comp_factor * $zram_fraction * 1024")
   fi
 
   # NOTE: zramctl sometimes fails if we don't wait for the module to settle after loading
   #       we'll retry a couple of times with slightly increasing delays before giving up
-  _device=''
+  device=''
   for i in $(seq 3); do
     # sleep for "0.1 * $i" seconds rounded to 2 digits
     sleep "$(calc 2 "0.1 * $i")"
-    _device=$(zramctl -f -s "$mem" -a "$_zram_algorithm") || true
-    [ -b "$_device" ] && break
+    device=$(zramctl -f -s "$mem" -a "$zram_algorithm") || true
+    [ -b "$device" ] && break
   done
 
-  if [ -b "$_device" ]; then
+  if [ -b "$device" ]; then
     # cleanup the device if swap setup fails
-    trap "_rem_zdev $_device" EXIT
-    mkswap "$_device"
-    swapon -d -p 15 "$_device"
+    trap "rem_zdev $device" EXIT
+    mkswap "$device"
+    swapon -d -p 15 "$device"
     trap - EXIT
     return 0
   else
@@ -114,11 +112,11 @@ _init() {
 }
 
 # end swapping and cleanup
-_end() {
+end() {
   ret="0"
   for dev in $(awk '/zram/ {print $1}' /proc/swaps); do
     swapoff "$dev"
-    if ! _rem_zdev "$dev"; then
+    if ! rem_zdev "$dev"; then
       err "end: Failed to remove zram device $dev"
       ret=1
     fi
@@ -127,7 +125,7 @@ _end() {
 }
 
 # Remove zram device with retry
-_rem_zdev() {
+rem_zdev() {
   if [ ! -b "$1" ]; then
     err "rem_zdev: No zram device '$1' to remove"
     return 1
@@ -146,17 +144,17 @@ _rem_zdev() {
 }
 
 # posix substitute for bash pattern matching [[ $foo =~ bar-pattern ]]
-# usage: _regex_match "$foo" "bar-pattern"
-_regex_match() { echo "$1" | grep -Eq -- "$2" > /dev/null 2>&1; }
+# usage: regex_match "$foo" "bar-pattern"
+regex_match() { echo "$1" | grep -Eq -- "$2" > /dev/null 2>&1; }
 
 # calculate with variable precision
 # usage: calc (int; precision := 0) (str; expr to evaluate)
 calc() {
-  _regex_match "$1" '^[[:digit:]]+$' && { n="$1" && shift; } || n=0
+  regex_match "$1" '^[[:digit:]]+$' && { n="$1" && shift; } || n=0
   LC_NUMERIC=C awk "BEGIN{printf \"%.${n}f\", $*}"
 }
 
 err() { echo "Err $*" >&2; }
-_usage() { echo "Usage: $(basename "$0") (start|stop)"; }
+usage() { echo "Usage: $(basename "$0") (start|stop)"; }
 
-_main "$@"
+main "$@"
