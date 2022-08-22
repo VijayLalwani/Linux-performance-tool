@@ -9,29 +9,47 @@ then
 fi
 
 # install earlyoom if not in the system
-if pacman -Q earlyoom | grep earlyoom ; then
-    pacman -S earlyloom --noconfirm
+if [[ $(pacman -Q earlyoom | grep earlyoom*) -ne 0 ]]; then
+    pacman -S earlyoom --noconfirm
 fi
 
 # main script:
-_main() {
+main() {
 
   # make sure `set -u` doesn't cause 'case "1$"' to throw errors below
   { [ "$#" -eq "0" ] && set -- ""; } > /dev/null 2>&1
 
   case "$1" in
-    "init" | "start")
-      systemctl start earlyoom
-      ;;
-    "end" | "stop")
-      systemctl stop earlyoom
-      ;;
-    "restart" | "restart")
-      systemctl restart earlyoom
-      ;;
+    start)
+        systemctl start earlyoom
+        ;;
+    stop)
+        systemctl stop earlyoom
+        ;;
+    restart)
+        systemctl restart earlyoom
+        ;;
+    help)
+        Help
+        ;;
     *)
-      echo "Usage: $(basename "$0") (start|stop|restart)" 
-      exit 1
-      ;;
+        echo "Usage: $(basename "$0") (start|stop|restart|help)" 
+        exit 1
+        ;;
   esac
 }
+
+Help()
+{
+   # Display Help
+   echo
+   echo "Syntax: $(basename "$0") (start|stop|restart|help)"
+   echo "options:"
+   echo "start      Starts the earlyoom service."
+   echo "stop       Terminates the earlyoom service."
+   echo "restart    Restarts the earlyoom service."
+   echo "help       Prints this help screen."
+   echo
+}
+
+main "$@"
