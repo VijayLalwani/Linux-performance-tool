@@ -1,5 +1,4 @@
 #!/bin/bash 
-#https://gist.github.com/trick77/21cfc65c769609be29e2
 
 available_governors=$(cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_available_governors \
 | head -1 | sed -e 's/ \([a-zA-Z0-9]\)/|\1/g' -e 's/ $//')
